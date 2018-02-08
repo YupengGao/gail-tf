@@ -15,7 +15,7 @@ import hfo_py
 
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of GAIL")
-    parser.add_argument('--env_id', help='environment ID', default="Soccer-v0")
+    parser.add_argument('--env_id', help='environment ID', default="Soccer-v1")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_cpu', help='number of cpu to used', type=int, default=1)
     parser.add_argument('--expert_path', type=str, default='baselines/ppo1/deterministic.ppo.Hopper.0.00.pkl')
@@ -36,7 +36,7 @@ def argsparser():
     parser.add_argument('--policy_hidden_size', type=int, default=100)
     parser.add_argument('--adversary_hidden_size', type=int, default=100)
     # Algorithms Configuration
-    parser.add_argument('--algo', type=str, choices=['bc', 'trpo', 'ppo'], default='trpo')
+    parser.add_argument('--algo', type=str, choices=['bc', 'trpo', 'ppo'], default='bc')
     parser.add_argument('--max_kl', type=float, default=0.01)
     parser.add_argument('--policy_entcoeff', help='entropy coefficiency of policy', type=float, default=0)
     parser.add_argument('--adversary_entcoeff', help='entropy coefficiency of discriminator', type=float, default=1e-3)
@@ -80,13 +80,13 @@ def main(args):
     args.log_dir = osp.join(args.log_dir, task_name)
     cmd = hfo_py.get_hfo_path() + ' --offense-npcs=1 --defense-npcs=1 --record --frames=1000'
     print(cmd)
-    os.system(cmd)
+    # os.system(cmd)
 
     dataset = Mujoco_Dset(expert_path="", ret_threshold=args.ret_threshold, traj_limitation=args.traj_limitation)
 
     # dataset = Mujoco_Dset(expert_path=args.expert_path, ret_threshold=args.ret_threshold, traj_limitation=args.traj_limitation)
     pretrained_weight = None
-    """
+
     if (args.pretrained and args.task == 'train') or args.algo == 'bc':
         # Pretrain with behavior cloning
         from gailtf.algo import behavior_clone
@@ -129,7 +129,7 @@ def main(args):
                 number_trajs=10, stochastic_policy=args.stochastic_policy)
         else: raise NotImplementedError
     else: raise NotImplementedError
-    """
+
     env.close()
 
 if __name__ == '__main__':

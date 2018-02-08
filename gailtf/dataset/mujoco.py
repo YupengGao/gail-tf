@@ -21,7 +21,7 @@ class Dset(object):
             self.inputs = self.inputs[idx, :]
             self.labels = self.labels[idx, :]
 
-    def get_next_batch(self, batch_size):
+    def get_next_batch(self, batch_size, isHigh):
         # if batch_size is negative -> return all
         if batch_size < 0:
             return self.inputs, self.labels
@@ -43,6 +43,7 @@ class Mujoco_Dset(object):
         acs = []
         rets = []
         lens = []
+        actions_label = []
         for traj in tqdm(traj_data):
             if ret_threshold is not None and traj["ep_ret"] < ret_threshold:
                 pass
@@ -52,6 +53,7 @@ class Mujoco_Dset(object):
             lens.append(len(traj["ob"]))
             obs.append(traj["ob"])
             acs.append(traj["ac"])
+            actions_label.append(traj["action_label"])
         self.num_traj = len(rets)
         self.avg_ret = sum(rets)/len(rets)
         self.avg_len = sum(lens)/len(lens)

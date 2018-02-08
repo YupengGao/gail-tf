@@ -38,8 +38,8 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   ob_space = env.observation_space
   ac_space = env.action_space
   #pi = policy_func("pi", ob_space, ac_space) # Construct network for new policy
-  pi_high = policy_func("pi_high", ob_space, ac_space.spaces[0])
-  pi_low = policy_func("pi_low", ob_space, ac_space.spaces[1])
+  pi_high = policy_func("pi_high", ob_space, ac_space.spaces[0])#high -> action_label
+  # pi_low = policy_func("pi_low", ob_space, ac_space.spaces[1])
 
   # placeholder
   ob = U.get_placeholder_cached(name="ob")
@@ -50,12 +50,12 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   adam_high = MpiAdam(var_list_high, epsilon=adam_epsilon)
   lossandgrad_high = U.function([ob, ac_high, stochastic_high], [loss_high]+[U.flatgrad(loss_high, var_list_high)])
 
-  ac_low = pi_low.pdtype.sample_placeholder([None])
-  stochastic_low = U.get_placeholder_cached(name="stochastic")
-  loss_low = tf.reduce_mean(tf.square(ac_low - pi_low.ac))
-  var_list_low = pi_low.get_trainable_variables()
-  adam_low = MpiAdam(var_list_low, epsilon=adam_epsilon)
-  lossandgrad_low = U.function([ob, ac_low, stochastic_low], [loss_low] + [U.flatgrad(loss_low, var_list_low)])
+  # ac_low = pi_low.pdtype.sample_placeholder([None])
+  # stochastic_low = U.get_placeholder_cached(name="stochastic")
+  # loss_low = tf.reduce_mean(tf.square(ac_low - pi_low.ac))
+  # var_list_low = pi_low.get_trainable_variables()
+  # adam_low = MpiAdam(var_list_low, epsilon=adam_epsilon)
+  # lossandgrad_low = U.function([ob, ac_low, stochastic_low], [loss_low] + [U.flatgrad(loss_low, var_list_low)])
 
   if not pretrained:
     writer = U.FileWriter(log_dir)
@@ -64,7 +64,8 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   adam_high.sync()
   logger.log("Pretraining with Behavior Cloning...")
   for iter_so_far in tqdm(range(int(max_iters))):
-    ob_expert, ac_expert = dataset.get_next_batch(optim_batch_size, 'train')
+    isHigh = True
+    ob_expert, ac_expert = dataset.get_next_batch(optim_batch_size, 'train', isHigh)
     loss, g = lossandgrad_high(ob_expert, ac_expert, True)
     adam_high.update(g, optim_stepsize)
     if not pretrained:
