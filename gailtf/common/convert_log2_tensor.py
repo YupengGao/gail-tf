@@ -205,7 +205,7 @@ def convert_log2_tensor():
 			iii = 0
 		# traj = Trajectory(obs_T_Do, obsfeat_T_Df, adist_T_Pa, a_T_Da, a_T_Da_Label, r_T)
 		# trajs.append(traj)
-		traj = {"ob":obs, "ac": actions, "ep_ret": reward_all, "re":rewards}
+		traj = {"ob":obs, "ac": actions, "ep_ret": reward_all, "re":rewards, "action_label" : action_labels}
 		trajs.append(traj)
 	return trajs
 

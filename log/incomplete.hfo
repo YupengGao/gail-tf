@@ -1,0 +1,13 @@
+# Offense: 1
+# Defense:  1
+# Description of Fields:
+# 1) Episode number
+# 2) Start time in simulator steps (100ms)
+# 3) End time in simulator steps (100ms)
+# 4) Duration in simulator steps (100ms)
+# 5) Episode result
+#
+1	0	74	74	GOAL-11
+2	75	182	107	OUT_OF_BOUNDS
+3	183	278	95	GOAL-11
+4	279	363	84	GOAL-11
