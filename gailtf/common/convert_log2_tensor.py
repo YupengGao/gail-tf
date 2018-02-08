@@ -171,18 +171,19 @@ def convert_log2_tensor():
 	trajs = []
 	for trajectory_ind, trajectory in enumerate(trajectory_list):
 		# print('trajectory id is:',trajectory_ind)
-		obs, obsfeat, actions, actiondists, rewards, action_labels = [], [], [], [], [], []
+		obs, obsfeat, actions_high, actions_low, actiondists, rewards, action_labels = [], [], [], [], [], [], []
 		traj_len = 0
 		reward_all = 0
 		for frame_id,frame in enumerate(trajectory):
 			#print('frame number:', frame_id)
 			reward, status, action, action_label = frame
 			obs.append(status)
-			actions.append(action)
+			actions_low.append(action)
 			rewards.append(reward)
-			action_labels.append(action_label)
+			actions_high.append(action_label)
+			# print('action_high', action_label)
 			# print('status', status)
-			# print('action', action)
+			# print('action_low', action)
 			# print('reward', reward)
 			reward_all += reward[0]
 			traj_len += 1
@@ -193,7 +194,7 @@ def convert_log2_tensor():
 			iii = 0
 		obsfeat_T_Df =  obs_T_Do # just as dummpy now
 		try:
-			a_T_Da = np.array(actions); assert a_T_Da.shape == (len(obs), len(action))
+			a_T_Da = np.array(actions_high); assert a_T_Da.shape == (len(obs), len(actions_high))
 			a_T_Da_Label = np.array(action_labels); assert a_T_Da_Label.shape == (len(obs), 1)
 		except:
 			iii = 0
@@ -205,7 +206,7 @@ def convert_log2_tensor():
 			iii = 0
 		# traj = Trajectory(obs_T_Do, obsfeat_T_Df, adist_T_Pa, a_T_Da, a_T_Da_Label, r_T)
 		# trajs.append(traj)
-		traj = {"ob":obs, "ac": actions, "ep_ret": reward_all, "re":rewards, "action_label" : action_labels}
+		traj = {"ob":obs, "actions_low": actions_low, "ep_ret": reward_all, "re":rewards, "actions_high" : actions_high}
 		trajs.append(traj)
 	return trajs
 

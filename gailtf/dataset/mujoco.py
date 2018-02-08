@@ -43,7 +43,7 @@ class Mujoco_Dset(object):
         acs = []
         rets = []
         lens = []
-        actions_label = []
+        actions_high = []
         for traj in tqdm(traj_data):
             if ret_threshold is not None and traj["ep_ret"] < ret_threshold:
                 pass
@@ -52,8 +52,8 @@ class Mujoco_Dset(object):
             rets.append(traj["ep_ret"])
             lens.append(len(traj["ob"]))
             obs.append(traj["ob"])
-            acs.append(traj["ac"])
-            actions_label.append(traj["action_label"])
+            acs.append(traj["actions_low"])
+            actions_high.append(traj["actions_high"])
         self.num_traj = len(rets)
         self.avg_ret = sum(rets)/len(rets)
         self.avg_len = sum(lens)/len(lens)

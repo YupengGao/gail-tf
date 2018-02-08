@@ -43,6 +43,7 @@ class PdType(object):
         return tf.placeholder(dtype=tf.float32, shape=prepend_shape+self.param_shape(), name=name)
     def sample_placeholder(self, prepend_shape, name=None):
         return tf.placeholder(dtype=tf.int64, shape=prepend_shape+self.sample_shape(), name=name)
+        # return tf.placeholder(dtype=self.sample_dtype(), shape=prepend_shape+self.sample_shape(), name=name)
 
 class CategoricalPdType(PdType):
     def __init__(self, ncat):

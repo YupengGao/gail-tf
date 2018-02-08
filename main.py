@@ -80,7 +80,7 @@ def main(args):
     args.log_dir = osp.join(args.log_dir, task_name)
     cmd = hfo_py.get_hfo_path() + ' --offense-npcs=1 --defense-npcs=1 --record --frames=1000'
     print(cmd)
-    os.system(cmd)
+    # os.system(cmd)
 
     dataset = Mujoco_Dset(expert_path="", ret_threshold=args.ret_threshold, traj_limitation=args.traj_limitation)
 
