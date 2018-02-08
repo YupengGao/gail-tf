@@ -15,7 +15,7 @@ import hfo_py
 
 def argsparser():
     parser = argparse.ArgumentParser("Tensorflow Implementation of GAIL")
-    parser.add_argument('--env_id', help='environment ID', default="Soccer-v1")
+    parser.add_argument('--env_id', help='environment ID', default="Soccer-v0")
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num_cpu', help='number of cpu to used', type=int, default=1)
     parser.add_argument('--expert_path', type=str, default='baselines/ppo1/deterministic.ppo.Hopper.0.00.pkl')
@@ -80,7 +80,7 @@ def main(args):
     args.log_dir = osp.join(args.log_dir, task_name)
     cmd = hfo_py.get_hfo_path() + ' --offense-npcs=1 --defense-npcs=1 --record --frames=1000'
     print(cmd)
-    # os.system(cmd)
+    os.system(cmd)
 
     dataset = Mujoco_Dset(expert_path="", ret_threshold=args.ret_threshold, traj_limitation=args.traj_limitation)
 

@@ -33,15 +33,15 @@ class SoccerEnvInit(gym.Env, utils.EzPickle):
         self.observation_space = spaces.Box(low=-1, high=1,
                                             shape=(self.env.getStateSize()))
         # Action space omits the Tackle/Catch actions, which are useful on defense
-        # self.action_space = spaces.Tuple((spaces.Discrete(3),
-        #                                   spaces.Box(low=0, high=100, shape=1),
-        #                                   spaces.Box(low=-180, high=180, shape=1),
-        #                                   spaces.Box(low=-180, high=180, shape=1),
-        #                                   spaces.Box(low=0, high=100, shape=1),
-        #                                   spaces.Box(low=-180, high=180, shape=1)))
+        self.action_space = spaces.Tuple((spaces.Discrete(3),
+                                          spaces.Box(low=0, high=100, shape=1),
+                                          spaces.Box(low=-180, high=180, shape=1),
+                                          spaces.Box(low=-180, high=180, shape=1),
+                                          spaces.Box(low=0, high=100, shape=1),
+                                          spaces.Box(low=-180, high=180, shape=1)))
 
-        self.action_space = spaces.Tuple(spaces.Discrete(3),
-                                           spaces.Box(low=np.array([0,-180,-180,0,-180]), high=np.array([100,180,180,100,180])))
+        # self.action_space = spaces.Tuple(spaces.Discrete(3),
+        #                                    spaces.Box(low=np.array([0,-180,-180,0,-180]), high=np.array([100,180,180,100,180])))
         self.status = hfo_py.IN_GAME
 
     def __del__(self):
@@ -201,12 +201,14 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         self.observation_space = spaces.Box(low=-1, high=1,
                                             shape=(self.env.getStateSize()))
         # Action space omits the Tackle/Catch actions, which are useful on defense
-        self.action_space = spaces.Tuple((spaces.Discrete(3),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1),
-                                          spaces.Box(low=0, high=100, shape=1),
-                                          spaces.Box(low=-180, high=180, shape=1)))
+        # self.action_space = spaces.Tuple((spaces.Discrete(3),
+        #                                   spaces.Box(low=0, high=100, shape=1),
+        #                                   spaces.Box(low=-180, high=180, shape=1),
+        #                                   spaces.Box(low=-180, high=180, shape=1),
+        #                                   spaces.Box(low=0, high=100, shape=1),
+        #                                   spaces.Box(low=-180, high=180, shape=1)))
+
+        self.action_space = spaces.Tuple((spaces.Discrete(3),spaces.Box(low=np.array([0, -180, -180, 0, -180]),high=np.array([100, 180, 180, 100, 180]))))
         self.status = hfo_py.IN_GAME
 
     def __del__(self):
