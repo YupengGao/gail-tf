@@ -5,10 +5,11 @@ from tqdm import tqdm
 import ipdb
 
 class Dset(object):
-    def __init__(self, inputs, labels, randomize):
+    def __init__(self, inputs, labels_low, labels_high, randomize):
         self.inputs = inputs
-        self.labels = labels
-        assert len(self.inputs) == len(self.labels)
+        self.labels_high = labels_high
+        self.labels_low = labels_low
+        assert len(self.inputs) == len(self.labels_low)
         self.randomize = randomize
         self.num_pairs = len(inputs)
         self.init_pointer()
@@ -19,19 +20,30 @@ class Dset(object):
             idx = np.arange(self.num_pairs)
             np.random.shuffle(idx)
             self.inputs = self.inputs[idx, :]
-            self.labels = self.labels[idx, :]
+            self.labels_low = self.labels_low[idx, :]
+            self.labels_high = self.labels_high[idx, :]
 
     def get_next_batch(self, batch_size, isHigh):
         # if batch_size is negative -> return all
         if batch_size < 0:
-            return self.inputs, self.labels
+            if isHigh:
+                return self.inputs, self.labels_high
+            else:
+                return self.inputs, self.labels_low
+            # return self.inputs, self.labels_low, self.labels_high
         if self.pointer + batch_size >= self.num_pairs:
             self.init_pointer()
         end = self.pointer + batch_size
         inputs = self.inputs[self.pointer:end, :]
-        labels = self.labels[self.pointer:end, :]
+        labels_low = self.labels_low[self.pointer:end, :]
+        labels_high = self.labels_high[self.pointer:end, :]
         self.pointer = end
-        return inputs, labels
+        assert len(labels_low) == len(labels_high)
+        if isHigh:
+            return inputs, labels_high
+        else:
+            return inputs, labels_low
+        # return inputs, labels_low, labels_high
 
 class Mujoco_Dset(object):
     def __init__(self, expert_path, train_fraction=0.7, ret_threshold=None, traj_limitation=np.inf, randomize=True):
@@ -40,10 +52,11 @@ class Mujoco_Dset(object):
         from gailtf.common import convert_log2_tensor
         traj_data = convert_log2_tensor.convert_log2_tensor()
         obs = []
-        acs = []
+        # acs = []
         rets = []
         lens = []
         actions_high = []
+        actions_low = []
         for traj in tqdm(traj_data):
             if ret_threshold is not None and traj["ep_ret"] < ret_threshold:
                 pass
@@ -52,7 +65,7 @@ class Mujoco_Dset(object):
             rets.append(traj["ep_ret"])
             lens.append(len(traj["ob"]))
             obs.append(traj["ob"])
-            acs.append(traj["actions_low"])
+            actions_low.append(traj["actions_low"])
             actions_high.append(traj["actions_high"])
         self.num_traj = len(rets)
         self.avg_ret = sum(rets)/len(rets)
@@ -60,18 +73,23 @@ class Mujoco_Dset(object):
         self.rets = np.array(rets)
         self.lens = np.array(lens)
         self.obs = np.array([v for ob in obs for v in ob])
-        self.acs = np.array([v for ac in acs for v in ac])
-        if len(self.acs) > 2:
-            self.acs = np.squeeze(self.acs)
-        assert len(self.obs) == len(self.acs)
+        self.acs_low = np.array([v for ac in actions_low for v in ac])
+        self.acs_high = np.array([v for ac in actions_high for v in ac])
+        if len(self.acs_low) > 2:
+            self.acs_low = np.squeeze(self.acs_low)
+        assert len(self.obs) == len(self.acs_low)
         self.num_transition = len(self.obs)
         self.randomize = randomize
-        self.dset = Dset(self.obs, self.acs, self.randomize)
+        self.dset = Dset(self.obs, self.acs_low, self.acs_high, self.randomize)
         # for behavior cloning
         self.train_set = Dset(self.obs[:int(self.num_transition*train_fraction),:], 
-                      self.acs[:int(self.num_transition*train_fraction),:], self.randomize)
+                              self.acs_low[:int(self.num_transition*train_fraction),:],
+                              self.acs_high[:int(self.num_transition*train_fraction),:],
+                              self.randomize)
         self.val_set = Dset(self.obs[int(self.num_transition*train_fraction):,:], 
-                      self.acs[int(self.num_transition*train_fraction):,:], self.randomize)
+                            self.acs_low[int(self.num_transition*train_fraction):,:],
+                            self.acs_high[int(self.num_transition * train_fraction):, :],
+                            self.randomize)
         self.log_info()
         print("finish load data!")
 
@@ -81,13 +99,13 @@ class Mujoco_Dset(object):
         logger.log("Average episode length: %f"%self.avg_len)
         logger.log("Average returns: %f"%self.avg_ret)
 
-    def get_next_batch(self, batch_size, split=None):
+    def get_next_batch(self, batch_size, split=None, isHigh=False):
         if split is None:
-            return self.dset.get_next_batch(batch_size)
+            return self.dset.get_next_batch(batch_size, isHigh)
         elif split == 'train':
-            return self.train_set.get_next_batch(batch_size)
+            return self.train_set.get_next_batch(batch_size, isHigh)
         elif split == 'val':
-            return self.val_set.get_next_batch(batch_size)
+            return self.val_set.get_next_batch(batch_size, isHigh)
         else:
             raise NotImplementedError
 

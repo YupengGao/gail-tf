@@ -197,9 +197,9 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         self._configure_environment(port2use, num_offense_agents, num_offense_agents_npcs)
         #process = subprocess.Popen(self.hfo_path+' --offense-agents=1 --defense-npcs=1', shell=True, stdout=subprocess.PIPE)
         self.env = hfo_py.HFOEnvironment()
-        self.env.connectToServer(feature_set=hfo_py.HIGH_LEVEL_FEATURE_SET, config_dir=hfo_py.get_config_path(), server_port=port2use)
+        self.env.connectToServer(feature_set=hfo_py.LOW_LEVEL_FEATURE_SET, config_dir=hfo_py.get_config_path(), server_port=port2use)
         self.observation_space = spaces.Box(low=-1, high=1,
-                                            shape=(self.env.getStateSize()))
+                                            shape=(68))
         # Action space omits the Tackle/Catch actions, which are useful on defense
         # self.action_space = spaces.Tuple((spaces.Discrete(3),
         #                                   spaces.Box(low=0, high=100, shape=1),

@@ -38,11 +38,12 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   ob_space = env.observation_space
   ac_space = env.action_space
   #pi = policy_func("pi", ob_space, ac_space) # Construct network for new policy
-  pi_high = policy_func("pi_high", ob_space, ac_space.spaces[0])#high -> action_label
+  pi_high = policy_func("pi_high", ob_space, ac_space.spaces[1])#high -> action_label
   # pi_low = policy_func("pi_low", ob_space, ac_space.spaces[1])
 
   # placeholder
   ob = U.get_placeholder_cached(name="ob")
+
   ac_high = pi_high.pdtype.sample_placeholder([None])
   stochastic_high = U.get_placeholder_cached(name="stochastic")
   loss_high = tf.reduce_mean(tf.square(ac_high-pi_high.ac))
@@ -64,14 +65,14 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   adam_high.sync()
   logger.log("Pretraining with Behavior Cloning...")
   for iter_so_far in tqdm(range(int(max_iters))):
-    isHigh = True
+    isHigh = False
     ob_expert, ac_expert = dataset.get_next_batch(optim_batch_size, 'train', isHigh)
     loss, g = lossandgrad_high(ob_expert, ac_expert, True)
     adam_high.update(g, optim_stepsize)
     if not pretrained:
       ep_stats.add_all_summary(writer, [loss], iter_so_far)
     if iter_so_far % val_per_iter == 0:
-      ob_expert, ac_expert = dataset.get_next_batch(-1, 'val')
+      ob_expert, ac_expert = dataset.get_next_batch(-1, 'val', isHigh)
       loss, g = lossandgrad_high(ob_expert, ac_expert, False)
       logger.log("Validation:")
       logger.log("Loss: %f"%loss)
