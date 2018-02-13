@@ -38,34 +38,38 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
   ob_space = env.observation_space
   ac_space = env.action_space
   #pi = policy_func("pi", ob_space, ac_space) # Construct network for new policy
-  pi_high = policy_func("pi_high", ob_space, ac_space.spaces[1])#high -> action_label
-  # pi_low = policy_func("pi_low", ob_space, ac_space.spaces[1])
+  pi_high = policy_func("pi_high", ob_space, ac_space.spaces[0])#high -> action_label
+  pi_low = policy_func("pi_low", ob_space, ac_space.spaces[1])
 
   # placeholder
   ob = U.get_placeholder_cached(name="ob")
 
-  ac_high = pi_high.pdtype.sample_placeholder([None])
+  ac_low = pi_low.pdtype.sample_placeholder([None])
+  stochastic_low = U.get_placeholder_cached(name="stochastic")
+  loss_low = tf.reduce_mean(tf.square(ac_low - pi_low.ac))
+  var_list_low = pi_low.get_trainable_variables()
+  adam_low = MpiAdam(var_list_low, epsilon=adam_epsilon)
+  lossandgrad_low = U.function([ob, ac_low, stochastic_low], [loss_low] + [U.flatgrad(loss_low, var_list_low)])
+
+  ac_high = pi_high.pdtype.sample_placeholder([None,1])
+  onehot_labels = tf.one_hot(indices=tf.cast(ac_high,tf.int32), depth=3)
   stochastic_high = U.get_placeholder_cached(name="stochastic")
-  loss_high = tf.reduce_mean(tf.square(ac_high-pi_high.ac))
+  cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(logits=pi_high.logits,
+                                                          labels=onehot_labels)
+  loss_high = tf.reduce_mean(cross_entropy)
   var_list_high = pi_high.get_trainable_variables()
   adam_high = MpiAdam(var_list_high, epsilon=adam_epsilon)
   lossandgrad_high = U.function([ob, ac_high, stochastic_high], [loss_high]+[U.flatgrad(loss_high, var_list_high)])
 
-  # ac_low = pi_low.pdtype.sample_placeholder([None])
-  # stochastic_low = U.get_placeholder_cached(name="stochastic")
-  # loss_low = tf.reduce_mean(tf.square(ac_low - pi_low.ac))
-  # var_list_low = pi_low.get_trainable_variables()
-  # adam_low = MpiAdam(var_list_low, epsilon=adam_epsilon)
-  # lossandgrad_low = U.function([ob, ac_low, stochastic_low], [loss_low] + [U.flatgrad(loss_low, var_list_low)])
-
+  # train high level policy
   if not pretrained:
     writer = U.FileWriter(log_dir)
     ep_stats = stats(["Loss"])
   U.initialize()
   adam_high.sync()
-  logger.log("Pretraining with Behavior Cloning...")
+  logger.log("Pretraining with Behavior Cloning High...")
   for iter_so_far in tqdm(range(int(max_iters))):
-    isHigh = False
+    isHigh = True
     ob_expert, ac_expert = dataset.get_next_batch(optim_batch_size, 'train', isHigh)
     loss, g = lossandgrad_high(ob_expert, ac_expert, True)
     adam_high.update(g, optim_stepsize)
@@ -78,7 +82,30 @@ def learn(env, policy_func, dataset, pretrained, optim_batch_size=128, max_iters
       logger.log("Loss: %f"%loss)
       if not pretrained:
         U.save_state(os.path.join(ckpt_dir, task_name), counter=iter_so_far)
+
+  # train low level policy
+  if not pretrained:
+    writer = U.FileWriter(log_dir)
+    ep_stats = stats(["Loss"])
+  U.initialize()
+  adam_low.sync()
+  logger.log("Pretraining with Behavior Cloning Low...")
+  for iter_so_far in tqdm(range(int(max_iters))):
+    isHigh = False
+    ob_expert, ac_expert = dataset.get_next_batch(optim_batch_size, 'train', isHigh)
+    loss, g = lossandgrad_low(ob_expert, ac_expert, True)
+    adam_low.update(g, optim_stepsize)
+    if not pretrained:
+      ep_stats.add_all_summary(writer, [loss], iter_so_far)
+    if iter_so_far % val_per_iter == 0:
+      ob_expert, ac_expert = dataset.get_next_batch(-1, 'val', isHigh)
+      loss, g = lossandgrad_low(ob_expert, ac_expert, False)
+      logger.log("Validation:")
+      logger.log("Loss: %f"%loss)
+      if not pretrained:
+        U.save_state(os.path.join(ckpt_dir, task_name), counter=iter_so_far)
+
   if pretrained:
     savedir_fname = tempfile.TemporaryDirectory().name
-    U.save_state(savedir_fname, var_list=pi.get_variables())
+    U.save_state(savedir_fname, var_list=pi_high.get_variables())
     return savedir_fname
