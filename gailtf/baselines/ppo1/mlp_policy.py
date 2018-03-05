@@ -19,12 +19,12 @@ class MlpPolicy(object):
         self.pdtype = pdtype = make_pdtype(ac_space)
         sequence_length = None
 
-        ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
-
+        # ob = U.get_placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
+        self.ob = tf.placeholder(name="ob", dtype=tf.float32, shape=[sequence_length] + list(ob_space.shape))
         with tf.variable_scope("obfilter"):
             self.ob_rms = RunningMeanStd(shape=ob_space.shape)
 
-        obz = tf.clip_by_value((ob - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
+        obz = tf.clip_by_value((self.ob - self.ob_rms.mean) / self.ob_rms.std, -5.0, 5.0)
         last_out = obz
         for i in range(num_hid_layers):
             last_out = tf.nn.tanh(U.dense(last_out, hid_size, "vffc%i"%(i+1), weight_init=U.normc_initializer(1.0)))
@@ -47,11 +47,12 @@ class MlpPolicy(object):
         self.state_out = []
 
         # change for BC
-        #stochastic = tf.placeholder(dtype=tf.bool, shape=())
-        stochastic = U.get_placeholder(name="stochastic", dtype=tf.bool, shape=())
-        ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
+        self.stochastic = tf.placeholder(name="stochastic",dtype=tf.bool, shape=())
+        # stochastic = U.get_placeholder(name="stochastic", dtype=tf.bool, shape=())
+        ac = U.switch(self.stochastic, self.pd.sample(), self.pd.mode())
         self.ac = ac
-        self._act = U.function([stochastic, ob], [ac, self.vpred])
+        self._act = U.function([self.stochastic, self.ob], [ac, self.vpred])
+        # tf.add_to_collection("action_result", self._act)
 
     def act(self, stochastic, ob):
         ac1, vpred1 =  self._act(stochastic, ob[None])

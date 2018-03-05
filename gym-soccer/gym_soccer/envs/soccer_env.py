@@ -24,7 +24,7 @@ class SoccerEnvInit(gym.Env, utils.EzPickle):
         self.hfo_path = hfo_py.get_hfo_path()
         # need to check unused port
         sock, port2use = self.bind_unused_port()
-        num_offense_agents = 0
+        num_offense_agents = 1
         num_offense_agents_npcs = 1
         self._configure_environment(port2use, num_offense_agents, num_offense_agents_npcs)
         #process = subprocess.Popen(self.hfo_path+' --offense-agents=1 --defense-npcs=1', shell=True, stdout=subprocess.PIPE)
@@ -193,13 +193,13 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         # need to check unused port
         sock, port2use = self.bind_unused_port()
         num_offense_agents = 1
-        num_offense_agents_npcs = 0
+        num_offense_agents_npcs = 1
         self._configure_environment(port2use, num_offense_agents, num_offense_agents_npcs)
         #process = subprocess.Popen(self.hfo_path+' --offense-agents=1 --defense-npcs=1', shell=True, stdout=subprocess.PIPE)
         self.env = hfo_py.HFOEnvironment()
         self.env.connectToServer(feature_set=hfo_py.LOW_LEVEL_FEATURE_SET, config_dir=hfo_py.get_config_path(), server_port=port2use)
         self.observation_space = spaces.Box(low=-1, high=1,
-                                            shape=(68))
+                                            shape=(self.env.getStateSize()))
         # Action space omits the Tackle/Catch actions, which are useful on defense
         # self.action_space = spaces.Tuple((spaces.Discrete(3),
         #                                   spaces.Box(low=0, high=100, shape=1),
@@ -299,7 +299,7 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         elif action_type == hfo_py.KICK:
             self.env.act(action_type, action[4], action[5])
         else:
-            print('Unrecognized action %d' % action_type)
+            print('Unrecognized action %d' % action_type, action)
             self.env.act(hfo_py.NOOP)
 
     def _get_reward(self):
@@ -349,21 +349,21 @@ class SoccerEnv(gym.Env, utils.EzPickle):
         port = sock.getsockname()[1]
         return sock, port
 
-#ACTION_LOOKUP = {
-#    0 : hfo_py.DASH,
-#    1 : hfo_py.TURN,
-#    2 : hfo_py.KICK,
-#    3 : hfo_py.TACKLE, # Used on defense to slide tackle the ball
-#    4 : hfo_py.CATCH,  # Used only by goalie to catch the ball
-#}
 ACTION_LOOKUP = {
-    0 : hfo_py.MOVE,
-    1 : hfo_py.SHOOT,
-    2 : hfo_py.PASS,
-    3 : hfo_py.DRIBBLE,
-    4 : hfo_py.CATCH,
-    4 : hfo_py.NOOP, # Used on defense to slide tackle the ball
-    5 : hfo_py.QUIT,  # Used only by goalie to catch the ball
+   0 : hfo_py.DASH,
+   1 : hfo_py.TURN,
+   2 : hfo_py.KICK,
+   3 : hfo_py.TACKLE, # Used on defense to slide tackle the ball
+   4 : hfo_py.CATCH,  # Used only by goalie to catch the ball
 }
+# ACTION_LOOKUP = {
+#     0 : hfo_py.MOVE,
+#     1 : hfo_py.SHOOT,
+#     2 : hfo_py.PASS,
+#     3 : hfo_py.DRIBBLE,
+#     4 : hfo_py.CATCH,
+#     4 : hfo_py.NOOP, # Used on defense to slide tackle the ball
+#     5 : hfo_py.QUIT,  # Used only by goalie to catch the ball
+# }
 
 

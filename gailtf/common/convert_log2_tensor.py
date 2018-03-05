@@ -14,8 +14,9 @@ import re, os
 # from policyopt import Trajectory, TrajBatch
 #fileName = "soccer_traj.hdf5"
 #hdf5_file = h5py.File(fileName, 'w')
-def convert_log2_tensor():
-	path_name = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'log'))#, '..','log'
+def convert_log2_tensor(expert_data_path):
+	# path_name = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'log/soccer_data_1v1_1000'))#, '..','log'
+	path_name = expert_data_path
 	print(path_name)
 	incomplete_file = open(path_name+"/incomplete.hfo")
 	log_file = open(path_name+"/base_left-11.log")
@@ -39,10 +40,10 @@ def convert_log2_tensor():
 			continue
 		trajectory_frame_list.append([start, end, length, status])
 
-	for i, x in enumerate(trajectory_frame_list):
-		print(x)
+	# for i, x in enumerate(trajectory_frame_list):
+	# 	print(x)
 
-	print ('the number of trajectory is:', len(trajectory_frame_list))
+	# print ('the number of trajectory is:', len(trajectory_frame_list))
 	# action statues, reward,
 
 	# while trajectory_number < len(trajectory_frame_list):
@@ -54,6 +55,7 @@ def convert_log2_tensor():
 	hasReward = False
 	lines = log_file.readlines()
 	for i in range(0, len(lines)):
+		# print(i)
 		if trajectory_number >= len(trajectory_frame_list):
 			break
 
@@ -61,7 +63,7 @@ def convert_log2_tensor():
 		end_frame = trajectory_frame_list[trajectory_number][1]
 
 		tokens = lines[i].split()
-
+		# print(tokens[0], end_frame)
 		if int(tokens[0]) < int(start_frame):#skip the out of time and out of bound traj
 			continue
 
@@ -73,7 +75,7 @@ def convert_log2_tensor():
 			tokens_next_line = lines[i + 1].split()
 			if 'Turn' in tokens_next_line[4] or 'Kick' in tokens_next_line[4] or 'Dash' in tokens_next_line[4] or 'Move' in tokens_next_line[4]:
 				continue
-
+		# print(num)
 		if num == 3:# 3 item in one frame
 			frame = []
 			num = 0
@@ -159,10 +161,17 @@ def convert_log2_tensor():
 			action_label.append(2)
 			frame.append(action_label)
 
+		elif 'Tackle' in tokens[4] and num == 2:
+			frame_list = []
+			trajectory_number = trajectory_number + 1
+			frame = []
+			num = 0
+
 		if num == 3:
 			frame_list.append(frame)
 
 		if int(tokens[0]) == int(end_frame) and num == 3:
+
 			trajectory_list.append(frame_list)
 			trajectory_number = trajectory_number + 1
 			frame_list = []
@@ -177,6 +186,7 @@ def convert_log2_tensor():
 		for frame_id,frame in enumerate(trajectory):
 			#print('frame number:', frame_id)
 			reward, status, action, action_label = frame
+			# print("length of status:",len(status))
 			obs.append(status)
 			actions_low.append(action)
 			rewards.append(reward)
@@ -208,5 +218,6 @@ def convert_log2_tensor():
 		# trajs.append(traj)
 		traj = {"ob":obs, "actions_low": actions_low, "ep_ret": reward_all, "re":rewards, "actions_high" : actions_high}
 		trajs.append(traj)
+
 	return trajs
 

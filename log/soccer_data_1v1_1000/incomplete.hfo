@@ -1,0 +1,22 @@
+# Offense: 1
+# Defense:  1
+# Description of Fields:
+# 1) Episode number
+# 2) Start time in simulator steps (100ms)
+# 3) End time in simulator steps (100ms)
+# 4) Duration in simulator steps (100ms)
+# 5) Episode result
+#
+1	0	75	75	GOAL-11
+2	76	138	62	GOAL-11
+3	139	205	66	CAPTURED_BY_DEFENSE-1
+4	206	275	69	GOAL-11
+5	276	344	68	GOAL-11
+6	345	413	68	GOAL-11
+7	414	500	86	GOAL-11
+8	501	569	68	GOAL-11
+9	570	650	80	GOAL-11
+10	651	735	84	GOAL-11
+11	736	842	106	GOAL-11
+12	843	901	58	GOAL-11
+13	902	985	83	GOAL-11

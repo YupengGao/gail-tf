@@ -277,7 +277,7 @@ def FileWriter(dir_path):
 
 def load_state(fname, var_list=None):
     if var_list is not None: saver = tf.train.Saver(var_list=var_list)
-    else: saver = tf.train.Saver()
+    else: saver = tf.train.import_meta_graph(fname+'.meta', clear_devices=True)#saver = tf.train.Saver()
     saver.restore(get_session(), fname)
 
 
@@ -289,6 +289,26 @@ def save_state(fname, var_list=None, counter=None):
 
     if counter is not None: saver.save(get_session(), fname, global_step=counter)
     else: saver.save(get_session(), fname)
+
+class ImportGraph():
+    """  Importing and running isolated TF graph """
+    def __init__(self, loc):
+        # Create local graph and use it in the session
+        self.graph = tf.Graph()
+        self.sess = tf.Session(graph=self.graph)
+        with self.graph.as_default():
+            # Import saved model from location 'loc' into local graph
+            saver = tf.train.import_meta_graph(loc + '.meta',
+                                               clear_devices=True)
+            saver.restore(self.sess, loc)
+            # Get activation function from saved collection
+            # You may need to change this in case you name it differently
+            self.action = tf.get_collection('action')
+
+    def run(self, data):
+        """ Running the activation function previously imported """
+        # The 'x' corresponds to name of input placeholder
+        return self.sess.run(self.activation, feed_dict={"x:0": data})
 
 # ================================================================
 # Model components

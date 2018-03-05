@@ -12,14 +12,16 @@ class Dset(object):
         assert len(self.inputs) == len(self.labels_low)
         self.randomize = randomize
         self.num_pairs = len(inputs)
+        # print("before:",self.labels_high)
         self.init_pointer()
+        # print("after:",self.labels_high)
        
     def init_pointer(self):
         self.pointer = 0
         if self.randomize:
             idx = np.arange(self.num_pairs)
             np.random.shuffle(idx)
-            self.inputs = self.inputs[idx, :]
+            self.inputs = self.inputs[idx, :]#shuttle the array by selecting corresponding index row to form a new array
             self.labels_low = self.labels_low[idx, :]
             self.labels_high = self.labels_high[idx, :]
 
@@ -33,6 +35,7 @@ class Dset(object):
             # return self.inputs, self.labels_low, self.labels_high
         if self.pointer + batch_size >= self.num_pairs:
             self.init_pointer()
+
         end = self.pointer + batch_size
         inputs = self.inputs[self.pointer:end, :]
         labels_low = self.labels_low[self.pointer:end, :]
@@ -46,35 +49,38 @@ class Dset(object):
         # return inputs, labels_low, labels_high
 
 class Mujoco_Dset(object):
-    def __init__(self, expert_path, train_fraction=0.7, ret_threshold=None, traj_limitation=np.inf, randomize=True):
+    def __init__(self, expert_data_path, train_fraction=0.7, ret_threshold=None, traj_limitation=np.inf, randomize=True):
         # with open(expert_path, "rb") as f:
         #     traj_data = pkl.load(f)
         from gailtf.common import convert_log2_tensor
-        traj_data = convert_log2_tensor.convert_log2_tensor()
+        traj_data = convert_log2_tensor.convert_log2_tensor(expert_data_path)
         obs = []
         # acs = []
         rets = []
         lens = []
         actions_high = []
         actions_low = []
-        for traj in tqdm(traj_data):
+
+        for traj in (traj_data):#put all trajs_inf into one list
             if ret_threshold is not None and traj["ep_ret"] < ret_threshold:
                 pass
             if len(rets) >= traj_limitation:
                 break
-            rets.append(traj["ep_ret"])
+            rets.append(traj["ep_ret"])#only one return reward for one traj
             lens.append(len(traj["ob"]))
             obs.append(traj["ob"])
             actions_low.append(traj["actions_low"])
             actions_high.append(traj["actions_high"])
         self.num_traj = len(rets)
-        self.avg_ret = sum(rets)/len(rets)
-        self.avg_len = sum(lens)/len(lens)
+        self.avg_ret = sum(rets)/len(rets)# number of reward per traj
+        self.avg_len = sum(lens)/len(lens)# number of frames per traj
         self.rets = np.array(rets)
         self.lens = np.array(lens)
-        self.obs = np.array([v for ob in obs for v in ob])
+        self.obs = np.array([v for ob in obs for v in ob])# flatten the array, ignore the #traj
         self.acs_low = np.array([v for ac in actions_low for v in ac])
+
         self.acs_high = np.array([v for ac in actions_high for v in ac])
+
         if len(self.acs_low) > 2:
             self.acs_low = np.squeeze(self.acs_low)
         assert len(self.obs) == len(self.acs_low)
@@ -82,7 +88,7 @@ class Mujoco_Dset(object):
         self.randomize = randomize
         self.dset = Dset(self.obs, self.acs_low, self.acs_high, self.randomize)
         # for behavior cloning
-        self.train_set = Dset(self.obs[:int(self.num_transition*train_fraction),:], 
+        self.train_set = Dset(self.obs[:int(self.num_transition*train_fraction),:],
                               self.acs_low[:int(self.num_transition*train_fraction),:],
                               self.acs_high[:int(self.num_transition*train_fraction),:],
                               self.randomize)
@@ -91,7 +97,7 @@ class Mujoco_Dset(object):
                             self.acs_high[int(self.num_transition * train_fraction):, :],
                             self.randomize)
         self.log_info()
-        print("finish load data!")
+
 
     def log_info(self):
         logger.log("Total trajectories: %d"%self.num_traj)

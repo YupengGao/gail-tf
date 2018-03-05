@@ -403,6 +403,63 @@ def traj_episode_generator(pi, env, horizon, stochastic):
         t += 1
 
 
+def traj_episode_generator_combine(sess_high, sess_low, pi_high, pi_low, env, horizon, stochastic):
+    t = 0
+    ac = env.action_space.sample()  # not used, just so we have the datatype
+    new = True  # marks if we're on first timestep of an episode
+
+    ob = env.reset()
+    cur_ep_ret = 0  # return in current episode
+    cur_ep_len = 0  # len of current episode
+
+    # Initialize history arrays
+    obs = [];
+    rews = [];
+    news = [];
+    acs = []
+
+    while True:
+        prevac = ac
+        with sess_high.as_default():
+            ac_high, vpred_high = pi_high.act(stochastic, ob)
+        with sess_low.as_default():
+            ac_low, vpred_low = pi_low.act(stochastic, ob)
+        ac = []
+        ac.append(ac_high)
+        for item in ac_low:
+            ac.append(item)
+        # ac.append(ac_low)
+        # ac = ac_high + ac_low
+        obs.append(ob)
+        news.append(new)
+        acs.append(ac)
+
+        ob, rew, new, _ = env.step(ac)
+        rews.append(rew)
+
+        cur_ep_ret += rew
+        cur_ep_len += 1
+        if t > 0 and (new or t % horizon == 0):
+            # convert list into numpy array
+            obs = np.array(obs)
+            rews = np.array(rews)
+            news = np.array(news)
+            acs = np.array(acs)
+            yield {"ob": obs, "rew": rews, "new": news, "ac": acs,
+                   "ep_ret": cur_ep_ret, "ep_len": cur_ep_len}
+            ob = env.reset()
+            cur_ep_ret = 0;
+            cur_ep_len = 0;
+            t = 0
+
+            # Initialize history arrays
+            obs = [];
+            rews = [];
+            news = [];
+            acs = []
+        t += 1
+
+
 def evaluate(env, policy_func, load_model_path, timesteps_per_batch, number_trajs=10,
              stochastic_policy=False):
     from tqdm import tqdm
@@ -430,6 +487,7 @@ def evaluate(env, policy_func, load_model_path, timesteps_per_batch, number_traj
         print('deterministic policy:')
     print("Average length:", sum(len_list) / len(len_list))
     print("Average return:", sum(ret_list) / len(ret_list))
+    print(len(ret_list))
 
 
 def flatten_lists(listoflists):
